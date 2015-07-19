@@ -20,6 +20,48 @@ module TrafficSpy
       end
     end
 
+    get '/sources/:identifier.json' do |identifier|
+      @identifier = identifier
+      @site = Site.find_by(:identifier => @identifier)
+      urls = @site.payloads.group(:url).count.sort_by {  |_, v| v }.reverse
+      browsers = @site.payloads.group(:browser).count.sort_by { |_, v| v }.reverse
+      platforms = @site.payloads.group(:platform).count.sort_by { |_, v| v }.reverse
+      screens = @site.payloads.group(:resolution_width, :resolution_height).count.sort_by { |_, v| v }.reverse
+      response_times = @site.payloads.group(:url).average(:responded_in).sort_by {  |_, v| v }
+
+      @browsers       = {}
+      @sorted_urls    = {}
+      @platforms      = {}
+      @screens        = {}
+      @response_times = {}
+
+       urls.each do |url|
+        @sorted_urls[url.first.path] = url.last
+       end
+
+      browsers.each do |browser|
+        @browsers[browser.first.name] = browser.last
+      end
+
+      platforms.map do |platform|
+        @platforms[platform.first.name] = platform.last
+      end
+
+      screens.map do |screen|
+        @screens[screen.first.join('x')] = screen.last
+      end
+
+      response_times.map do |time|
+        @response_times[time.first.path] = time.last.to_i
+      end
+
+      content_type :json
+      { :sorted_urls => @sorted_urls, :browsers => @browsers,
+        :platforms => @platforms, :screens => @screens,
+        :response_times => @response_times }.to_json
+
+    end
+
     get '/sources/:identifier' do |identifier|
       @site = Site.find_by(:identifier => identifier)
       @identifier = identifier
@@ -40,6 +82,52 @@ module TrafficSpy
         end
         erb :dashboard
       end
+
+    end
+
+    get '/sources/:identifier/urls.json' do |identifier|
+      @identifier = identifier
+      @site = Site.find_by(:identifier => @identifier)
+
+      content_type :json
+      @site.urls.map do |url|
+        @fastest_response_time = url.payloads.minimum(:responded_in)
+        @slowest_response_time = url.payloads.maximum(:responded_in)
+        @average_response_time = url.payloads.average(:responded_in).round(2)
+        http_verbs = url.payloads.group(:request_type).count.sort_by { |_, v| v }.reverse
+        top_referrers = url.payloads.group(:referrer).count.sort_by { |_, v| v }.reverse
+        top_browsers = url.payloads.group(:browser).count.sort_by { |_, v| v }.reverse
+        top_platforms = url.payloads.group(:platform).count.sort_by { |_, v| v }.reverse
+
+        @http_verbs       = {}
+        @top_referrers    = {}
+        @top_browsers     = {}
+        @top_platforms    = {}
+
+        http_verbs.map do |verb|
+          @http_verbs[verb.first.verb] = verb.last
+        end
+
+        top_referrers.map do |referrer|
+          @top_referrers[referrer.first.path] = referrer.last
+        end
+
+        top_browsers.map do |browser|
+          @top_browsers[browser.first.name] = browser.last
+        end
+
+        top_platforms.map do |platform|
+          @top_platforms[platform.first.name] = platform.last
+        end
+
+        { :url => url.path,:data => {:fastest_response_time => @fastest_response_time,
+                                     :slowest_response_time => @slowest_response_time,
+                                     :average_reponse_time => @average_response_time,
+                                     :http_verbs => @http_verbs,
+                                     :top_referrers => @top_referrers,
+                                     :top_browsers => @top_browsers,
+                                     :top_platforms => @top_platforms} }
+      end.to_json
 
     end
 
@@ -64,6 +152,18 @@ module TrafficSpy
 
         erb :url_data
       end
+    end
+
+    get '/sources/:identifier/events.json' do |identifier|
+      @identifier = identifier
+      @site = Site.find_by(:identifier => @identifier)
+      @events = @site.payloads.group(:event).count.sort_by { |_, v| v }.reverse
+
+      content_type :json
+      @events.map do |event|
+        { :event => event.first.name, :total_requests  => event.last }
+      end.to_json
+
     end
 
     get '/sources/:indentifier/events' do |identifier|
@@ -164,3 +264,4 @@ module TrafficSpy
 
   end
 end
+
