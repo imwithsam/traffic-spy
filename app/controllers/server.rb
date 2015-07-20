@@ -32,8 +32,11 @@ module TrafficSpy
         erb :message
       else
         @dashboard_renderer = DashboardRenderer.new(identifier, site)
-
-        erb :dashboard
+        if request.xhr?
+          erb :dashboard, :layout => false
+        else
+          erb :dashboard
+        end
       end
     end
 

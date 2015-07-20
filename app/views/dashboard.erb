@@ -1,4 +1,5 @@
-<!-- Title -->
+<div  id="update-div">
+  <!-- Title -->
 <div class="row">
   <div class="col-lg-12">
     <h1>Hello, <%= "#{@dashboard_renderer.identifier}" %></h1>
@@ -166,3 +167,22 @@
   </div>
 </div>
 <!-- /.row -->
+</div>
+
+<script type="text/javascript">
+$.ajaxSetup ({
+     cache: false
+  });
+
+$(document).ready(function() { update_time(); });
+
+// fetch text from the server, wait 5 secs and repeat
+function update_time() {
+  $.get("/sources/<%= @dashboard_renderer.identifier %>",
+        function(data) {
+          $("#update-div").html(data);
+          window.setTimeout(update_time, 5000);
+        },
+        'text');
+}
+</script>

@@ -8,6 +8,7 @@ body {
   background-size: cover;
   font-family: 'Roboto', sans-serif !important;
   color: #ffffff;
+  height: 100%;
 }
 p, div, h1, h2, h3, h4, h5, h6 {
     font-family: 'Roboto', sans-serif;
@@ -102,7 +103,7 @@ td a:hover, td a:focus {
   margin-bottom: 30px;
 }
 footer {
-  position:absolute;
+  position:fixed;
   bottom: 0;
   width: 100%;
   height: 30px;
