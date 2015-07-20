@@ -24,43 +24,39 @@ module TrafficSpy
 
     get '/sources/:identifier.json' do |identifier|
       @identifier = identifier
-      @site = Site.find_by(:identifier => @identifier)
-      urls = @site.payloads.group(:url).count.sort_by {  |_, v| v }.reverse
-      browsers = @site.payloads.group(:browser).count.sort_by { |_, v| v }.reverse
-      platforms = @site.payloads.group(:platform).count.sort_by { |_, v| v }.reverse
-      screens = @site.payloads.group(:resolution_width, :resolution_height).count.sort_by { |_, v| v }.reverse
-      response_times = @site.payloads.group(:url).average(:responded_in).sort_by {  |_, v| v }
+      site = Site.find_by(:identifier => @identifier)
+      @dashboard_renderer = DashboardRenderer.new(identifier, site)
 
-      @browsers       = {}
-      @sorted_urls    = {}
-      @platforms      = {}
-      @screens        = {}
-      @response_times = {}
+      sorted_urls    = {}
+      browsers       = {}
+      platforms      = {}
+      screens        = {}
+      response_times = {}
 
-       urls.each do |url|
-        @sorted_urls[url.first.path] = url.last
+       @dashboard_renderer.urls.map do |url|
+        sorted_urls[url.first.path] = url.last
        end
 
-      browsers.each do |browser|
-        @browsers[browser.first.name] = browser.last
+      @dashboard_renderer.browsers.each do |browser|
+        browsers[browser.first.name] = browser.last
       end
 
-      platforms.map do |platform|
-        @platforms[platform.first.name] = platform.last
+      @dashboard_renderer.platforms.each do |platform|
+        platforms[platform.first.name] = platform.last
       end
 
-      screens.map do |screen|
-        @screens[screen.first.join('x')] = screen.last
+      @dashboard_renderer.screens.each do |screen|
+        screens[screen.first.join('x')] = screen.last
       end
 
-      response_times.map do |time|
-        @response_times[time.first.path] = time.last.to_i
+      @dashboard_renderer.response_times.each do |time|
+        response_times[time.first.path] = time.last.to_i
       end
 
       content_type :json
-      { :sorted_urls => @sorted_urls, :browsers => @browsers,
-        :platforms => @platforms, :screens => @screens,
-        :response_times => @response_times }.to_json
+      { :sorted_urls => sorted_urls, :browsers => browsers,
+        :platforms => platforms, :screens => screens,
+        :average_response_time => response_times }.to_json
 
     end
 
@@ -81,47 +77,43 @@ module TrafficSpy
 
     get '/sources/:identifier/urls.json' do |identifier|
       @identifier = identifier
-      @site = Site.find_by(:identifier => @identifier)
+      site = Site.find_by(:identifier => identifier)
 
       content_type :json
-      @site.urls.map do |url|
-        @fastest_response_time = url.payloads.minimum(:responded_in)
-        @slowest_response_time = url.payloads.maximum(:responded_in)
-        @average_response_time = url.payloads.average(:responded_in).round(2)
-        http_verbs = url.payloads.group(:request_type).count.sort_by { |_, v| v }.reverse
-        top_referrers = url.payloads.group(:referrer).count.sort_by { |_, v| v }.reverse
-        top_browsers = url.payloads.group(:browser).count.sort_by { |_, v| v }.reverse
-        top_platforms = url.payloads.group(:platform).count.sort_by { |_, v| v }.reverse
+      url_data = site.urls.map do |url|
+        @url_data_renderer = UrlDataRenderer.new(nil, url)
 
-        @http_verbs       = {}
-        @top_referrers    = {}
-        @top_browsers     = {}
-        @top_platforms    = {}
+        http_verbs       = {}
+        top_referrers    = {}
+        top_browsers     = {}
+        top_platforms    = {}
 
-        http_verbs.map do |verb|
-          @http_verbs[verb.first.verb] = verb.last
+        @url_data_renderer.http_verbs.map do |verb|
+          http_verbs[verb.first.verb] = verb.last
         end
 
-        top_referrers.map do |referrer|
-          @top_referrers[referrer.first.path] = referrer.last
+        @url_data_renderer.top_referrers.map do |referrer|
+          top_referrers[referrer.first.path] = referrer.last
         end
 
-        top_browsers.map do |browser|
-          @top_browsers[browser.first.name] = browser.last
+        @url_data_renderer.top_browsers.map do |browser|
+          top_browsers[browser.first.name] = browser.last
         end
 
-        top_platforms.map do |platform|
-          @top_platforms[platform.first.name] = platform.last
+        @url_data_renderer.top_platforms.map do |platform|
+          top_platforms[platform.first.name] = platform.last
         end
 
-        { :url => url.path,:data => {:fastest_response_time => @fastest_response_time,
-                                     :slowest_response_time => @slowest_response_time,
-                                     :average_reponse_time => @average_response_time,
-                                     :http_verbs => @http_verbs,
-                                     :top_referrers => @top_referrers,
-                                     :top_browsers => @top_browsers,
-                                     :top_platforms => @top_platforms} }
+        { :url => url.path,:data => {:fastest_response_time => @url_data_renderer.fastest_response_time,
+                                     :slowest_response_time => @url_data_renderer.slowest_response_time,
+                                     :average_reponse_time  => @url_data_renderer.average_response_time,
+                                     :http_verbs => http_verbs,
+                                     :top_referrers => top_referrers,
+                                     :top_browsers => top_browsers,
+                                     :top_platforms => top_platforms} }
       end.to_json
+
+      url_data[1..-2]
 
     end
 
@@ -147,9 +139,11 @@ module TrafficSpy
       @events = @site.payloads.group(:event).count.sort_by { |_, v| v }.reverse
 
       content_type :json
-      @events.map do |event|
+      event_data = @events.map do |event|
         { :event => event.first.name, :total_requests  => event.last }
       end.to_json
+
+      event_data[1..-2]
 
     end
 
