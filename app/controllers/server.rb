@@ -22,6 +22,44 @@ module TrafficSpy
       end
     end
 
+    get '/sources/:identifier.json' do |identifier|
+      @identifier = identifier
+      site = Site.find_by(:identifier => @identifier)
+      @dashboard_renderer = DashboardRenderer.new(identifier, site)
+
+      sorted_urls    = {}
+      browsers       = {}
+      platforms      = {}
+      screens        = {}
+      response_times = {}
+
+       @dashboard_renderer.urls.map do |url|
+        sorted_urls[url.first.path] = url.last
+       end
+
+      @dashboard_renderer.browsers.each do |browser|
+        browsers[browser.first.name] = browser.last
+      end
+
+      @dashboard_renderer.platforms.each do |platform|
+        platforms[platform.first.name] = platform.last
+      end
+
+      @dashboard_renderer.screens.each do |screen|
+        screens[screen.first.join('x')] = screen.last
+      end
+
+      @dashboard_renderer.response_times.each do |time|
+        response_times[time.first.path] = time.last.to_i
+      end
+
+      content_type :json
+      { :sorted_urls => sorted_urls, :browsers => browsers,
+        :platforms => platforms, :screens => screens,
+        :average_response_time => response_times }.to_json
+
+    end
+
     get '/sources/:identifier' do |identifier|
       @identifier = identifier
       site = Site.find_by(:identifier => identifier)
@@ -38,6 +76,48 @@ module TrafficSpy
           erb :dashboard
         end
       end
+    end
+
+    get '/sources/:identifier/urls.json' do |identifier|
+      @identifier = identifier
+      site = Site.find_by(:identifier => identifier)
+
+      content_type :json
+      url_data = site.urls.map do |url|
+        @url_data_renderer = UrlDataRenderer.new(nil, url)
+
+        http_verbs       = {}
+        top_referrers    = {}
+        top_browsers     = {}
+        top_platforms    = {}
+
+        @url_data_renderer.http_verbs.map do |verb|
+          http_verbs[verb.first.verb] = verb.last
+        end
+
+        @url_data_renderer.top_referrers.map do |referrer|
+          top_referrers[referrer.first.path] = referrer.last
+        end
+
+        @url_data_renderer.top_browsers.map do |browser|
+          top_browsers[browser.first.name] = browser.last
+        end
+
+        @url_data_renderer.top_platforms.map do |platform|
+          top_platforms[platform.first.name] = platform.last
+        end
+
+        { :url => url.path,:data => {:fastest_response_time => @url_data_renderer.fastest_response_time,
+                                     :slowest_response_time => @url_data_renderer.slowest_response_time,
+                                     :average_reponse_time  => @url_data_renderer.average_response_time,
+                                     :http_verbs => http_verbs,
+                                     :top_referrers => top_referrers,
+                                     :top_browsers => top_browsers,
+                                     :top_platforms => top_platforms} }
+      end.to_json
+
+      url_data[1..-2]
+
     end
 
     get '/sources/:identifier/urls/:relative_path' do |identifier, relative_path|
@@ -57,6 +137,20 @@ module TrafficSpy
           erb :url_data
         end
       end
+    end
+
+    get '/sources/:identifier/events.json' do |identifier|
+      @identifier = identifier
+      @site = Site.find_by(:identifier => @identifier)
+      @events = @site.payloads.group(:event).count.sort_by { |_, v| v }.reverse
+
+      content_type :json
+      event_data = @events.map do |event|
+        { :event => event.first.name, :total_requests  => event.last }
+      end.to_json
+
+      event_data[1..-2]
+
     end
 
     get '/sources/:identifier/events' do |identifier|
@@ -125,3 +219,4 @@ module TrafficSpy
     end
   end
 end
+
