@@ -1,16 +1,16 @@
-<!-- Title -->
-<div class="row">
-  <div class="col-lg-12">
-    <h1><%= "#{@identifier}" %>'s Event Index</h1>
+<div id="update-div">
+  <!-- Title -->
+  <div class="row">
+    <div class="col-lg-12">
+      <h1><%= "#{@identifier}" %>'s Event Index</h1>
+    </div>
   </div>
-</div>
-<!-- /.row -->
-
-<!-- Event Details -->
-<div class="row text-center">
-  <div class="col-md-3 col-sm-6 hero-feature">
-    <div class="panel">
-      <div class="table-responsive">
+  <!-- /.row -->
+  <!-- Event Details -->
+  <div class="row text-center">
+    <div class="col-md-3 col-sm-6 hero-feature">
+      <div class="panel">
+        <div class="table-responsive">
           <table class="table">
             <thead>
               <tr>
@@ -49,3 +49,19 @@
     </div>
   </div>
 <!-- /.row -->
+</div>
+<script type="text/javascript">
+
+$(document).ready(function() { update_time(); });
+
+// fetch text from the server, wait 5 secs and repeat
+function update_time() {
+  $.get("/sources/<%= @identifier %>/events",
+        function(xhr) {
+          $("#update_div").empty()
+          $("#update-div").html(xhr);
+          window.setTimeout(update_time, 20000);
+        },
+        'text');
+}
+</script>
