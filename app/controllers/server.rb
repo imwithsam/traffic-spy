@@ -70,8 +70,11 @@ module TrafficSpy
         erb :message
       else
         @dashboard_renderer = DashboardRenderer.new(identifier, site)
-
-        erb :dashboard
+        if request.xhr?
+          erb :dashboard, :layout => false
+        else
+          erb :dashboard
+        end
       end
     end
 
@@ -128,8 +131,11 @@ module TrafficSpy
         erb :message
       else
         @url_data_renderer = UrlDataRenderer.new(relative_path, url)
-
-        erb :url_data
+        if request.xhr?
+          erb :url_data, :layout => false
+        else
+          erb :url_data
+        end
       end
     end
 
@@ -157,8 +163,11 @@ module TrafficSpy
         erb :message
       else
         @events = site.payloads.group(:event).count.sort_by { |_, v| v }.reverse
-
-        erb :event_index
+        if request.xhr?
+          erb :event_index, :layout => false
+        else
+          erb :event_index
+        end
       end
     end
 
@@ -173,8 +182,11 @@ module TrafficSpy
         erb :message
       else
         @event_data_renderer = EventDataRenderer.new(identifier, event_name, site, event)
-
-        erb :event_data
+        if request.xhr?
+          erb :event_data, :layout => false
+        else
+          erb :event_data
+        end
       end
     end
 
