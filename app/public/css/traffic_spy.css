@@ -80,7 +80,7 @@ th {
   border-bottom: 1px solid #ddd;
 }
 td a {
-  color: #48E244;
+  color: #48e244;
 }
 td a:hover, td a:focus {
   color: #ffffff;
@@ -94,7 +94,7 @@ td a:hover, td a:focus {
   text-transform: capitalize;
 }
 .label-success {
-  background-color: #f05f40;
+  background-color: #48e244;
 }
 .hero-spacer {
   margin-top: 50px;
